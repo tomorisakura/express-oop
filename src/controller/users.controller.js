@@ -3,7 +3,7 @@ const Users = require('../model/users');
 const jwt = require('jsonwebtoken');
 const privateProps = new WeakMap();
 
-class Controller extends Connection{
+class UsersController extends Connection{
 
     constructor() {
         super();
@@ -23,25 +23,41 @@ class Controller extends Connection{
         }
     }
 
-    async create(req, res) {
+    create(req, res) {
         try {
             const name = req.body.name;
             const username = req.body.username;
             const password = req.body.password;
-    
-            const response = await new Users({
-                name : name,
-                username : username,
-                password : password
-            }).save();
 
             const token = jwt.sign({ data : username }, 'secret_key');
 
-            return res.send({
-                method : req.method,
-                status : 'success',
-                token : token,
-                results : response
+            return Users.findOne({
+                username : username
+            }).then(result => {
+                if(result !== null) {
+                    res.send({
+                        method : req.method,
+                        status : 'failure',
+                        message : 'username already exists'
+                    })
+                } else {
+                    const response = new Users({
+                        name : name,
+                        username : username,
+                        password : password
+                    });
+
+                    response.save();
+
+                    res.send({
+                        method : req.method,
+                        status : 'success',
+                        token : token,
+                        results : response
+                    });
+                }
+            }).catch(results => {
+                throw results;
             });
         } catch (error) {
             throw error;
@@ -102,4 +118,4 @@ class Controller extends Connection{
     }
 }
 
-module.exports = Controller;
+module.exports = UsersController;
